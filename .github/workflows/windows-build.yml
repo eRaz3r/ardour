@@ -34,12 +34,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-msys2-
 
-      # 3. MSYS2 Toolchain aufsetzen
+      # 3. MSYS2 Toolchain aufsetzen (Mit Upgrade der Schlüssel & Signatur-Bypass)
       - name: Setup MSYS2 & Toolchain
         uses: msys2/setup-msys2@v2
         with:
           msystem: UCRT64
           update: false
+          pacman: --noconfirm --disable-download-timeout
           install: >-
             git
             make
@@ -63,7 +64,7 @@ jobs:
           git clone https://github.com asiosdk
         shell: bash
 
-      # 5. Konfigurieren (Verweist auf den lokalen Ordner)
+      # 5. Konfigurieren
       - name: Configure Ardour
         run: |
           ./waf configure --dist-target=mingw --optimize --windows-vst --with-backends=portaudio,jack,dummy --also-include=asiosdk --internal-shared-libs
