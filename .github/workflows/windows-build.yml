@@ -23,7 +23,18 @@ jobs:
           submodules: 'recursive'
           fetch-depth: 0
 
-      # 2. MSYS2 Toolchain aufsetzen (Tippfehler korrigiert auf UCRT64)
+      # 2. Cache für MSYS2-Pakete einrichten
+      - name: Cache MSYS2 Packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            C:\msys64\var\cache\pacman\pkg
+            C:\msys64\ucrt64
+          key: ${{ runner.os }}-msys2-${{ hashFiles('**/windows-build.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-msys2-
+
+      # 3. MSYS2 Toolchain aufsetzen
       - name: Setup MSYS2 & Toolchain
         uses: msys2/setup-msys2@v2
         with:
@@ -46,23 +57,23 @@ jobs:
             mingw-w64-ucrt-x86_64-dlfcn
             mingw-w64-ucrt-x86_64-jack2
 
-      # 3. ASIO-SDK klonen
+      # 4. ASIO-SDK lokal im Projektordner klonen
       - name: Clone ASIO SDK
         run: |
-          git clone https://github.com //c/asiosdk
+          git clone https://github.com asiosdk
         shell: bash
 
-      # 4. Konfigurieren
+      # 5. Konfigurieren (Verweist auf den lokalen Ordner)
       - name: Configure Ardour
         run: |
-          ./waf configure --dist-target=mingw --optimize --windows-vst --with-backends=portaudio,jack,dummy --also-include=//c/asiosdk --internal-shared-libs
+          ./waf configure --dist-target=mingw --optimize --windows-vst --with-backends=portaudio,jack,dummy --also-include=asiosdk --internal-shared-libs
 
-      # 5. Kompilieren
+      # 6. Kompilieren
       - name: Compile Ardour
         run: |
           ./waf
 
-      # 6. Bereitstellen
+      # 7. Bereitstellen
       - name: Upload Windows Build Artifact
         uses: actions/upload-artifact@v4
         with:
