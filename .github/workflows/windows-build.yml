@@ -1,0 +1,63 @@
+name: Build Ardour for Windows
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: # Erlaubt es, den Build manuell via GitHub Web-UI zu starten
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+      # 1. Code aus dem Repository auschecken
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # 2. MSYS2 Umgebung mit der MinGW64 Toolchain aufsetzen
+      - name: Setup MSYS2 & Toolchain
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            git
+            make
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-python3
+            mingw-w64-x86_64-pkg-config
+            mingw-w64-x86_64-glib2
+            mingw-w64-x86_64-pango
+            mingw-w64-x86_64-libsndfile
+            mingw-w64-x86_64-liblo
+            mingw-w64-x86_64-taglib
+            mingw-w64-x86_64-lrdf
+            mingw-w64-x86_64-lilv
+            mingw-w64-x86_64-suil
+            mingw-w64-x86_64-boost
+            mingw-w64-x86_64-dlfcn
+
+      # 3. Ardour konfigurieren (Waf)
+      - name: Configure Ardour
+        run: |
+          ./waf configure --dist-target=mingw --optimize --windows-vst --with-backends=dummy
+
+      # 4. Kompilieren (Nutzt alle verfügbaren Kerne des GitHub-Servers)
+      - name: Compile Ardour
+        run: |
+          ./waf
+
+      # 5. Build-Ergebnis als herunterladbare ZIP-Datei bereitstellen
+      - name: Upload Windows Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ardour-Windows-Build
+          path: gtk2_ardour/release/
