@@ -16,21 +16,22 @@ jobs:
         shell: msys2 {0}
 
     steps:
+      # 1. Code auschecken
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: 'recursive'
+          fetch-depth: 0
 
+      # 2. MSYS2 aufsetzen (Update auf false gesetzt, um Timeouts zu verhindern)
       - name: Setup MSYS2 & Toolchain
         uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
-          update: true
+          update: false
           install: >-
             git
             make
-            unzip
-            curl
             mingw-w64-x86_64-toolchain
             mingw-w64-x86_64-python3
             mingw-w64-x86_64-pkg-config
@@ -46,23 +47,23 @@ jobs:
             mingw-w64-x86_64-dlfcn
             mingw-w64-x86_64-jack2
 
-      # ASIO-SDK von Steinberg herunterladen, um ASIO-Support zu ermöglichen
-      - name: Download Steinberg ASIO SDK
+      # 3. ASIO-SDK klonen
+      - name: Clone ASIO SDK
         run: |
-          curl -L -o asiosdk.zip https://www.steinberg.net/asiosdk
-          unzip -q asiosdk.zip
-          mv asm-node-v* /c/asiosdk || mv ASIOSDK2* /c/asiosdk || mv asiosdk /c/asiosdk
+          git clone https://github.com /c/asiosdk
         shell: bash
 
-      # Ardour konfigurieren mit portaudio (für ASIO) und jack
+      # 4. Konfigurieren
       - name: Configure Ardour
         run: |
           ./waf configure --dist-target=mingw --optimize --windows-vst --with-backends=portaudio,jack,dummy --also-include=/c/asiosdk
 
+      # 5. Kompilieren
       - name: Compile Ardour
         run: |
           ./waf
 
+      # 6. Bereitstellen
       - name: Upload Windows Build Artifact
         uses: actions/upload-artifact@v4
         with:
